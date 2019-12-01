@@ -23,6 +23,21 @@
 #include "mmu.h"
 #include "trace.h"
 #include "pmu.h"
+#include <asm/atomic.h>
+
+
+atomic_t exit_count = ATOMIC_INIT(0);
+atomic_t specific_exit_count [69] = {};
+EXPORT_SYMBOL(exit_count);
+EXPORT_SYMBOL(specific_exit_count);
+
+unsigned long long start_time,end_time = 0;
+atomic_long_t total = ATOMIC_INIT(0);
+atomic_long_t timeArray[69]={};
+EXPORT_SYMBOL(start_time);
+EXPORT_SYMBOL(end_time);
+EXPORT_SYMBOL(total);
+EXPORT_SYMBOL(timeArray);
 
 static u32 xstate_required_size(u64 xstate_bv, bool compacted)
 {
@@ -363,7 +378,7 @@ static inline void do_cpuid_7_mask(struct kvm_cpuid_entry2 *entry, int index)
 
 	/* cpuid 7.0.ecx*/
 	const u32 kvm_cpuid_7_0_ecx_x86_features =
-		F(AVX512VBMI) | F(LA57) | F(PKU) | 0 /*OSPKE*/ |
+		F(AVX512VBMI) | F(LA57) | F(PKU) | 0 /*OSPKE*/ | F(RDPID) |
 		F(AVX512_VPOPCNTDQ) | F(UMIP) | F(AVX512_VBMI2) | F(GFNI) |
 		F(VAES) | F(VPCLMULQDQ) | F(AVX512_VNNI) | F(AVX512_BITALG) |
 		F(CLDEMOTE) | F(MOVDIRI) | F(MOVDIR64B) | 0 /*WAITPKG*/;
@@ -1046,7 +1061,114 @@ int kvm_emulate_cpuid(struct kvm_vcpu *vcpu)
 
 	eax = kvm_rax_read(vcpu);
 	ecx = kvm_rcx_read(vcpu);
-	kvm_cpuid(vcpu, &eax, &ebx, &ecx, &edx, true);
+	
+	if( eax == 0x4fffffff)
+	{ eax = atomic_read(&exit_count);
+	  printk(" Geethu CPUID : count is %ld\n",exit_count);
+	}
+	else if(eax == 0x4ffffffd)
+	{   
+		switch(ecx)
+		{
+			case 0 ... 2:
+			case 7 ... 10:
+			case 12 ... 15:
+			case 18 ... 32:
+			case 36 ... 37:
+			case 39 ... 41:
+			case 43 ... 50:
+			case 52 ... 64:
+			case 67 ... 68:
+				eax = atomic_read(&specific_exit_count[ecx]);
+				printk("Geethu CPUID : Specific Exit Count for ecx is %u \n",eax); 
+				break;          
+        		case 35:
+			case 38:
+			case 42:	
+			case 65:
+				eax = 0x00000000;
+				ebx = 0x00000000;
+				ecx = 0x00000000;
+				edx = 0xFFFFFFFF;
+				printk("Invalid Input");
+				break;
+			case 3 ... 6:
+			case 11:
+			case 16 ... 17:
+			case 33 ... 34:
+			case 51:
+			case 66:
+				eax = 0x00000000;
+				ebx = 0x00000000;
+				ecx = 0x00000000;
+				edx = 0x00000000;
+			default:
+				eax = 0x00000000;
+				ebx = 0x00000000;
+				ecx = 0x00000000;
+				edx = 0x00000000;
+                       }
+		    
+        }
+	else if(eax == 0x4ffffffe){
+		
+		printk("CPUID Total Cycles : %llu \n",total);
+		ebx =(u32)(((atomic_long_read(&total))>>32) & 0xffffffff);
+		ecx = (u32)((atomic_long_read(&total)) & 0xffffffff);  
+		
+
+	}
+	else if(eax == 0x4FFFFFFC){
+		
+		switch(ecx)
+		{
+			case 0 ... 2:
+			case 7 ... 10:
+			case 12 ... 15:
+			case 18 ... 32:
+			case 36 ... 37:
+			case 39 ... 41:
+			case 43 ... 50:
+			case 52 ... 64:
+			case 67 ... 68:
+				ebx = (u32)(((atomic_long_read(&timeArray[ecx]))>>32) & 0xffffffff);
+				ecx = (u32)((atomic_long_read(&timeArray[ecx])) & 0xffffffff);  
+				printk("Geethu CPUID : high 32 bits of the total time spent for specific exit is %u \n",ebx); 
+				printk("Geethu CPUID : low 32 bits of the total time spent for specific exit is %u \n",ecx);
+				break;          
+        		case 35:
+			case 38:	
+			case 42:	
+			case 65:
+				eax = 0;
+				ebx = 0;
+				ecx = 0;
+				edx = 0xFFFFFFFF;
+				printk("Invalid Input");
+				break;
+			case 3 ... 6:
+			case 11:
+			case 16 ... 17:
+			case 33 ... 34:
+			case 51:
+			case 66:
+				eax = 0;
+				ebx = 0;
+				ecx = 0;
+				edx = 0;
+			default:
+				eax = 0;
+				ebx = 0;
+				ecx = 0;
+				edx = 0;
+		
+                       }
+	}
+
+
+	else {
+		kvm_cpuid(vcpu, &eax, &ebx, &ecx, &edx, true);
+	}
 	kvm_rax_write(vcpu, eax);
 	kvm_rbx_write(vcpu, ebx);
 	kvm_rcx_write(vcpu, ecx);
