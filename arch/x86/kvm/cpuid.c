@@ -31,11 +31,8 @@ atomic_t specific_exit_count [69] = {};
 EXPORT_SYMBOL(exit_count);
 EXPORT_SYMBOL(specific_exit_count);
 
-unsigned long long start_time,end_time = 0;
 atomic_long_t total = ATOMIC_INIT(0);
 atomic_long_t timeArray[69]={};
-EXPORT_SYMBOL(start_time);
-EXPORT_SYMBOL(end_time);
 EXPORT_SYMBOL(total);
 EXPORT_SYMBOL(timeArray);
 

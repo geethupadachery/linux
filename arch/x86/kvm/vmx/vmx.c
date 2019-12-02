@@ -64,8 +64,8 @@
 extern atomic_t exit_count;
 extern atomic_t specific_exit_count[];
 
-extern unsigned long long int start_time,end_time;
-unsigned long long int delta;
+u64 start_time,end_time = 0;
+u64 delta = 0;
 extern atomic_long_t total,timeArray[];
 int resp;
 
