@@ -1110,6 +1110,7 @@ int kvm_emulate_cpuid(struct kvm_vcpu *vcpu)
 	else if(eax == 0x4ffffffe){
 		
 		printk("CPUID Total Cycles : %llu \n",total);
+
 		ebx =(u32)(((atomic_long_read(&total))>>32) & 0xffffffff);
 		ecx = (u32)((atomic_long_read(&total)) & 0xffffffff);  
 		

@@ -5971,7 +5971,7 @@ static int vmx_handle_exit(struct kvm_vcpu *vcpu)
 
 		printk(KERN_INFO "Total cycles : %llu \n",total);
 		printk(KERN_INFO "Geethu VMX Time Array : Exit Type: %d Cycles:%llu\n",exit_reason,timeArray[exit_reason]);
-
+		
 		return resp;
 	}
 	else {
